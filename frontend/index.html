@@ -1,0 +1,1825 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Reto 3 Neural</title>
+    <style>
+      :root {
+        --white: #ffffff;
+        --page: #f7fcff;
+        --blue-25: #fbfeff;
+        --blue-50: #f1f9ff;
+        --blue-100: #e4f4ff;
+        --blue-200: #c8eaff;
+        --blue-300: #93d5fb;
+        --blue-500: #39aee3;
+        --blue-600: #168fc5;
+        --blue-700: #0f6f9e;
+        --ink: #12364a;
+        --muted: #6f8da2;
+        --line: #d8edf8;
+        --ok: #20a8bf;
+        --warn: #5c86a0;
+        --danger: #c94f62;
+        --danger-soft: #fff3f5;
+        --shadow: 0 24px 70px rgba(31, 122, 166, 0.13);
+        --soft-shadow: 0 12px 34px rgba(31, 122, 166, 0.08);
+      }
+
+      * { box-sizing: border-box; }
+
+      html { color-scheme: light; }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        color: var(--ink);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background:
+          radial-gradient(circle at 12% 0%, rgba(200, 234, 255, 0.7), transparent 31%),
+          linear-gradient(180deg, var(--white) 0, var(--page) 48%, var(--blue-50) 100%);
+      }
+
+      button,
+      input { font: inherit; }
+
+      button { -webkit-tap-highlight-color: transparent; }
+
+      svg { flex: 0 0 auto; }
+
+      .shell {
+        width: min(1400px, 100%);
+        margin: 0 auto;
+        padding: 22px;
+      }
+
+      .hero {
+        min-height: 168px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 22px;
+        align-items: center;
+        padding: 28px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.88);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(12px);
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        min-width: 0;
+      }
+
+      .mark {
+        width: 56px;
+        height: 56px;
+        display: grid;
+        place-items: center;
+        border-radius: 8px;
+        color: var(--white);
+        background: linear-gradient(180deg, var(--blue-500), var(--blue-600));
+        box-shadow: 0 16px 34px rgba(57, 174, 227, 0.28);
+      }
+
+      .mark svg { width: 29px; height: 29px; }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(1.9rem, 4vw, 3.35rem);
+        line-height: 0.98;
+        letter-spacing: 0;
+      }
+
+      .subtitle {
+        margin: 9px 0 0;
+        max-width: 72ch;
+        color: var(--muted);
+        font-size: clamp(0.96rem, 1.3vw, 1.08rem);
+        line-height: 1.55;
+      }
+
+      .status-card {
+        min-width: 292px;
+        display: grid;
+        gap: 12px;
+        padding: 16px;
+        border: 1px solid rgba(200, 234, 255, 0.82);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.74);
+        box-shadow: 0 12px 34px rgba(31, 122, 166, 0.08);
+      }
+
+      .status-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+      }
+
+      .status-head span {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--muted);
+        font-size: 0.74rem;
+        font-weight: 900;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+
+      .status-head strong {
+        color: var(--blue-700);
+        font-size: 0.92rem;
+        font-weight: 930;
+      }
+
+      .service-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .service-chip {
+        min-height: 34px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 9px;
+        padding: 0 11px;
+        border: 1px solid transparent;
+        border-radius: 999px;
+        color: var(--blue-700);
+        background: var(--blue-50);
+        font-size: 0.8rem;
+        font-weight: 850;
+        white-space: nowrap;
+      }
+
+      .service-chip span:first-child {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        min-width: 0;
+      }
+
+      .service-chip strong { font-weight: 930; }
+
+      .dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 999px;
+        background: var(--warn);
+      }
+
+      .dot.ok {
+        background: var(--ok);
+        box-shadow: 0 0 0 0 rgba(32, 168, 191, 0.3);
+        animation: pulse 1.9s ease-out infinite;
+      }
+
+      .dot.error { background: var(--danger); }
+
+      @keyframes pulse {
+        0% { box-shadow: 0 0 0 0 rgba(32, 168, 191, 0.33); }
+        100% { box-shadow: 0 0 0 12px rgba(32, 168, 191, 0); }
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(340px, 420px) minmax(0, 1fr);
+        gap: 18px;
+        margin-top: 18px;
+      }
+
+      .panel {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.94);
+        box-shadow: var(--soft-shadow);
+        overflow: hidden;
+      }
+
+      .panel-head {
+        min-height: 66px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 18px 20px;
+        border-bottom: 1px solid var(--line);
+        background: var(--blue-25);
+      }
+
+      .eyebrow {
+        color: var(--blue-600);
+        font-size: 0.74rem;
+        font-weight: 930;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .panel-title {
+        margin: 4px 0 0;
+        font-size: 1.05rem;
+        line-height: 1.25;
+      }
+
+      .form {
+        display: grid;
+        gap: 16px;
+        padding: 20px;
+      }
+
+      .field {
+        display: grid;
+        gap: 8px;
+      }
+
+      label {
+        color: var(--ink);
+        font-size: 0.84rem;
+        font-weight: 850;
+      }
+
+      input[type="text"] {
+        width: 100%;
+        min-height: 48px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 0 14px;
+        color: var(--ink);
+        background: var(--white);
+        outline: none;
+        transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+      }
+
+      input[type="text"]:focus {
+        border-color: var(--blue-300);
+        box-shadow: 0 0 0 4px rgba(147, 213, 251, 0.24);
+        background: var(--blue-25);
+      }
+
+      input[type="text"].is-missing {
+        border-color: var(--danger);
+        box-shadow: 0 0 0 4px rgba(201, 79, 98, 0.12);
+      }
+
+      .dropzone {
+        position: relative;
+        min-height: 94px;
+        display: grid;
+        grid-template-columns: 48px minmax(0, 1fr);
+        gap: 13px;
+        align-items: center;
+        padding: 14px;
+        border: 1px dashed var(--blue-300);
+        border-radius: 8px;
+        background: linear-gradient(180deg, var(--white), var(--blue-50));
+        cursor: pointer;
+        transition: border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+      }
+
+      .dropzone:hover,
+      .dropzone:focus-within,
+      .dropzone.is-dragging {
+        transform: translateY(-1px);
+        border-color: var(--blue-500);
+        box-shadow: 0 12px 24px rgba(57, 174, 227, 0.12);
+      }
+
+      .dropzone.is-filled {
+        border-style: solid;
+        border-color: rgba(32, 168, 191, 0.48);
+        background: var(--blue-25);
+      }
+
+      .dropzone.is-missing {
+        border-style: solid;
+        border-color: rgba(201, 79, 98, 0.5);
+        background: var(--danger-soft);
+      }
+
+      .dropzone input {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        cursor: pointer;
+      }
+
+      .file-icon {
+        width: 48px;
+        height: 48px;
+        display: grid;
+        place-items: center;
+        border-radius: 8px;
+        color: var(--blue-700);
+        background: var(--white);
+        border: 1px solid var(--line);
+      }
+
+      .file-icon svg,
+      .btn svg,
+      .icon-btn svg,
+      .text-link svg { width: 19px; height: 19px; }
+
+      .file-copy { min-width: 0; }
+
+      .file-name {
+        display: block;
+        color: var(--ink);
+        font-size: 0.94rem;
+        font-weight: 880;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .file-hint {
+        display: block;
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+
+      .error-text {
+        min-height: 17px;
+        color: var(--danger);
+        font-size: 0.78rem;
+        font-weight: 760;
+      }
+
+      .actions {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+        align-items: center;
+        padding-top: 4px;
+      }
+
+      .btn,
+      .icon-btn {
+        min-height: 50px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 9px;
+        border-radius: 8px;
+        font-weight: 880;
+        cursor: pointer;
+        transition: transform 150ms ease, border-color 150ms ease, background 150ms ease, opacity 150ms ease, box-shadow 150ms ease;
+      }
+
+      .btn {
+        border: 0;
+        color: var(--white);
+        background: linear-gradient(180deg, var(--blue-500), var(--blue-600));
+        box-shadow: 0 16px 30px rgba(57, 174, 227, 0.24);
+      }
+
+      .icon-btn {
+        border: 1px solid var(--line);
+        color: var(--blue-700);
+        background: var(--white);
+      }
+
+      .secondary-action,
+      .ghost-btn {
+        min-height: 46px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 9px;
+        border-radius: 8px;
+        font-weight: 860;
+        cursor: pointer;
+        transition: transform 150ms ease, border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
+      }
+
+      .secondary-action {
+        width: 100%;
+        border: 1px solid var(--line);
+        justify-content: flex-start;
+        padding: 0 13px;
+        color: var(--blue-700);
+        background: var(--blue-25);
+        border-color: var(--line);
+        font-size: 0.86rem;
+      }
+
+      .secondary-action.danger-lite {
+        color: var(--danger);
+        background: var(--danger-soft);
+        border-color: rgba(201, 79, 98, 0.22);
+      }
+
+      .ghost-btn {
+        min-height: 40px;
+        padding: 0 12px;
+        border: 1px solid var(--line);
+        color: var(--blue-700);
+        background: var(--white);
+        font-size: 0.82rem;
+      }
+
+      .icon-btn.danger {
+        color: var(--danger);
+        background: var(--danger-soft);
+        border-color: rgba(201, 79, 98, 0.22);
+      }
+
+      .btn:hover:not(:disabled),
+      .icon-btn:hover:not(:disabled),
+      .secondary-action:hover:not(:disabled),
+      .ghost-btn:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: 0 14px 28px rgba(57, 174, 227, 0.14);
+      }
+
+      .btn:disabled,
+      .icon-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        box-shadow: none;
+      }
+
+      .cleanup-note {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.8rem;
+        line-height: 1.4;
+      }
+
+      .evidence-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.08fr) minmax(330px, 0.92fr);
+        gap: 18px;
+      }
+
+      .process-status {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto auto;
+        gap: 12px;
+        align-items: center;
+        padding: 18px 20px;
+        border-bottom: 1px solid var(--line);
+        background:
+          linear-gradient(90deg, rgba(228, 244, 255, 0.78), rgba(255, 255, 255, 0.96));
+      }
+
+      .status-main {
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .status-orb {
+        width: 38px;
+        height: 38px;
+        display: grid;
+        place-items: center;
+        border-radius: 999px;
+        color: var(--white);
+        background: var(--blue-500);
+        box-shadow: 0 10px 24px rgba(57, 174, 227, 0.22);
+      }
+
+      .status-orb svg {
+        width: 19px;
+        height: 19px;
+      }
+
+      .status-copy {
+        min-width: 0;
+      }
+
+      .status-copy span,
+      .status-chip span {
+        display: block;
+        color: var(--muted);
+        font-size: 0.7rem;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .status-copy strong {
+        display: block;
+        margin-top: 3px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 1.08rem;
+      }
+
+      .status-chip {
+        min-width: 116px;
+        min-height: 56px;
+        display: grid;
+        align-content: center;
+        gap: 5px;
+        padding: 9px 12px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.82);
+      }
+
+      .status-chip strong {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 0.98rem;
+      }
+
+      .flow {
+        padding: 4px 20px 20px;
+      }
+
+      .step {
+        display: grid;
+        grid-template-columns: 34px minmax(0, 1fr) auto;
+        gap: 12px;
+        align-items: start;
+        padding: 16px 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .step:last-child { border-bottom: 0; }
+
+      .step-node {
+        width: 30px;
+        height: 30px;
+        display: grid;
+        place-items: center;
+        border-radius: 999px;
+        color: var(--blue-700);
+        background: var(--blue-100);
+        border: 1px solid var(--blue-200);
+        font-size: 0.72rem;
+        font-weight: 950;
+      }
+
+      .step.is-active .step-node,
+      .step.is-running .step-node {
+        color: var(--white);
+        background: var(--blue-500);
+        animation: breathe 1.3s ease-in-out infinite alternate;
+      }
+
+      .step.is-completed .step-node {
+        color: var(--white);
+        background: var(--ok);
+        border-color: var(--ok);
+      }
+
+      .step.is-failed .step-node {
+        color: var(--white);
+        background: var(--danger);
+        border-color: var(--danger);
+      }
+
+      @keyframes breathe {
+        from { box-shadow: 0 0 0 0 rgba(57, 174, 227, 0.24); }
+        to { box-shadow: 0 0 0 8px rgba(57, 174, 227, 0.02); }
+      }
+
+      .step strong {
+        display: block;
+        font-size: 0.95rem;
+      }
+
+      .step span {
+        display: block;
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 0.82rem;
+        line-height: 1.35;
+      }
+
+      .duration {
+        min-width: 64px;
+        text-align: right;
+        color: var(--muted);
+        font-size: 0.78rem;
+        font-weight: 800;
+      }
+
+      .result {
+        display: grid;
+        gap: 14px;
+        padding: 20px;
+      }
+
+      .magic-card {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 14px;
+        align-items: center;
+        min-height: 116px;
+        padding: 16px;
+        border: 1px solid var(--blue-200);
+        border-radius: 8px;
+        background: linear-gradient(180deg, var(--white), var(--blue-50));
+      }
+
+      .magic-card.is-hidden { display: none; }
+
+      .magic-card strong {
+        display: block;
+        font-size: 1.06rem;
+      }
+
+      .magic-card a {
+        display: block;
+        margin-top: 7px;
+        color: var(--blue-700);
+        font-weight: 850;
+        overflow-wrap: anywhere;
+        text-decoration: none;
+      }
+
+      .pin {
+        min-width: 94px;
+        min-height: 54px;
+        display: grid;
+        place-items: center;
+        border-radius: 8px;
+        color: var(--white);
+        background: var(--blue-600);
+        font-size: 1.08rem;
+        font-weight: 950;
+        letter-spacing: 0;
+      }
+
+      .downloads,
+      .evidence-list {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .text-link,
+      .evidence-item {
+        min-height: 42px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0 12px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        color: var(--blue-700);
+        background: var(--white);
+        font-size: 0.84rem;
+        font-weight: 820;
+        text-decoration: none;
+      }
+
+      .text-link.is-hidden { display: none; }
+
+      .evidence-item.done {
+        color: var(--white);
+        border-color: var(--ok);
+        background: var(--ok);
+      }
+
+      .delivery-empty {
+        display: grid;
+        gap: 10px;
+        padding: 16px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: linear-gradient(180deg, var(--white), var(--blue-50));
+      }
+
+      .delivery-empty strong {
+        font-size: 0.95rem;
+      }
+
+      .delivery-empty span {
+        color: var(--muted);
+        font-size: 0.82rem;
+        line-height: 1.45;
+      }
+
+      .log {
+        max-height: 240px;
+        margin: 0;
+        padding: 12px;
+        overflow: auto;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        color: var(--ink);
+        background: var(--white);
+        font: 0.82rem/1.55 "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      }
+
+      .log .muted { color: var(--muted); }
+      .log .ok { color: var(--blue-700); }
+      .log .warn { color: var(--warn); }
+      .log .error { color: var(--danger); }
+
+      .diagnostic-sheet {
+        width: min(960px, 100%);
+        max-height: min(760px, 92vh);
+        display: grid;
+        grid-template-rows: auto auto minmax(0, 1fr);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--white);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+
+      .diagnostic-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 20px 22px;
+        border-bottom: 1px solid var(--line);
+        background: linear-gradient(90deg, var(--blue-50), var(--white));
+      }
+
+      .diagnostic-header h2 {
+        margin: 0;
+        font-size: 1.18rem;
+      }
+
+      .diagnostic-header p {
+        margin: 5px 0 0;
+        color: var(--muted);
+        font-size: 0.84rem;
+      }
+
+      .diagnostic-tabs {
+        display: flex;
+        gap: 8px;
+        padding: 12px 22px;
+        border-bottom: 1px solid var(--line);
+        overflow-x: auto;
+      }
+
+      .diagnostic-tab {
+        min-height: 38px;
+        padding: 0 12px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        color: var(--blue-700);
+        background: var(--blue-25);
+        font-size: 0.82rem;
+        font-weight: 860;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+
+      .diagnostic-tab.is-active {
+        color: var(--white);
+        border-color: var(--blue-600);
+        background: var(--blue-600);
+      }
+
+      .diagnostic-content {
+        min-height: 0;
+        overflow: auto;
+        padding: 22px;
+        background: var(--blue-25);
+      }
+
+      .diagnostic-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .diagnostic-card {
+        display: grid;
+        gap: 5px;
+        padding: 14px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--white);
+      }
+
+      .diagnostic-card span {
+        color: var(--muted);
+        font-size: 0.72rem;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .diagnostic-card strong {
+        overflow-wrap: anywhere;
+        font-size: 0.96rem;
+      }
+
+      .diagnostic-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .diagnostic-event {
+        display: grid;
+        gap: 4px;
+        padding: 13px 14px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--white);
+      }
+
+      .diagnostic-event strong {
+        font-size: 0.9rem;
+      }
+
+      .diagnostic-event span {
+        color: var(--muted);
+        font-size: 0.82rem;
+        line-height: 1.4;
+      }
+
+      .diagnostic-event.error {
+        border-color: rgba(201, 79, 98, 0.32);
+        background: var(--danger-soft);
+      }
+
+      .empty-diagnostic {
+        padding: 18px;
+        border: 1px dashed var(--blue-200);
+        border-radius: 8px;
+        color: var(--muted);
+        background: var(--white);
+        font-size: 0.9rem;
+      }
+
+      .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        display: none;
+        place-items: center;
+        padding: 18px;
+        background: rgba(18, 54, 74, 0.28);
+        backdrop-filter: blur(8px);
+        z-index: 40;
+      }
+
+      .modal-backdrop.is-open { display: grid; }
+
+      .modal {
+        width: min(100%, 430px);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--white);
+        box-shadow: var(--shadow);
+        padding: 20px;
+      }
+
+      .modal h2 {
+        margin: 0;
+        font-size: 1.2rem;
+      }
+
+      .modal p {
+        margin: 10px 0 16px;
+        color: var(--muted);
+        line-height: 1.55;
+      }
+
+      .modal-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-top: 14px;
+      }
+
+      .secondary-btn,
+      .danger-confirm {
+        min-height: 46px;
+        border-radius: 8px;
+        font-weight: 850;
+        cursor: pointer;
+      }
+
+      .secondary-btn {
+        border: 1px solid var(--line);
+        color: var(--blue-700);
+        background: var(--white);
+      }
+
+      .danger-confirm {
+        border: 0;
+        color: var(--white);
+        background: var(--danger);
+      }
+
+      .is-hidden { display: none !important; }
+
+      @media (max-width: 1120px) {
+        .layout,
+        .evidence-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 760px) {
+        .shell { padding: 12px; }
+        .hero {
+          grid-template-columns: 1fr;
+          padding: 22px;
+        }
+        .brand { align-items: flex-start; }
+        .status-card { min-width: 0; }
+        .process-status,
+        .magic-card,
+        .actions {
+          grid-template-columns: 1fr;
+        }
+        .icon-btn { width: 100%; }
+        .diagnostic-grid { grid-template-columns: 1fr; }
+        .diagnostic-header { align-items: flex-start; }
+        .modal-actions { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero" aria-labelledby="page-title">
+        <div class="brand">
+          <div class="mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M5 12.5h4l2-5 4 10 2-5h2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M4 5.5C6.5 3.3 9.5 3 12 5.1c2.5-2.1 5.5-1.8 8 .4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div>
+            <h1 id="page-title">Reto 3 Neural</h1>
+            <p class="subtitle">
+              Del informe tecnico y la resonancia a una entrega segura, comprensible y lista para paciente con Idonia y Recog en staging real.
+            </p>
+          </div>
+        </div>
+
+        <div class="status-card" aria-label="Estado del sistema">
+          <div class="status-head" id="mode-pill">
+            <span><i class="dot" aria-hidden="true"></i>Staging</span>
+            <strong>comprobando</strong>
+          </div>
+          <div class="service-row">
+            <div class="service-chip" id="idonia-pill">
+              <span><i class="dot" aria-hidden="true"></i>Idonia</span>
+              <strong>...</strong>
+            </div>
+            <div class="service-chip" id="recog-pill">
+              <span><i class="dot" aria-hidden="true"></i>Recog</span>
+              <strong>...</strong>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="layout">
+        <section class="panel" aria-labelledby="intake-title">
+          <div class="panel-head">
+            <div>
+              <div class="eyebrow">Preparacion</div>
+              <h2 class="panel-title" id="intake-title">Caso clinico</h2>
+            </div>
+            <button class="icon-btn" type="button" id="health-btn" title="Comprobar sistema">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M20 12a8 8 0 1 1-2.34-5.66" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <path d="M20 4v6h-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
+
+          <form class="form" id="medical-form" novalidate>
+            <div class="field">
+              <label for="patient-dni">DNI del paciente</label>
+              <input id="patient-dni" name="patientDni" type="text" autocomplete="off" value="12345678A" />
+            </div>
+
+            <div class="field">
+              <label for="patient-name">Nombre visible</label>
+              <input id="patient-name" name="patientName" type="text" autocomplete="off" value="Paciente Demo" />
+            </div>
+
+            <div class="field">
+              <label>Estudio DICOM</label>
+              <div class="dropzone" data-dropzone>
+                <span class="file-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M12 3v12m0-12 4.5 4.5M12 3 7.5 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M5 15v3a3 3 0 0 0 3 3h8a3 3 0 0 0 3-3v-3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                </span>
+                <span class="file-copy">
+                  <span class="file-name" data-file-name>Seleccionar DICOM</span>
+                  <span class="file-hint">Resonancia magnetica en formato DICOM</span>
+                </span>
+                <input id="dicom-file" name="dicomFile" type="file" accept=".dcm,.dicom,application/dicom" />
+              </div>
+              <span class="error-text" data-error="dicom-file"></span>
+            </div>
+
+            <div class="field">
+              <label>Informe medico original</label>
+              <div class="dropzone" data-dropzone>
+                <span class="file-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M7 3h7l5 5v13H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                    <path d="M14 3v5h5M8 13h8M8 17h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                </span>
+                <span class="file-copy">
+                  <span class="file-name" data-file-name>Seleccionar PDF</span>
+                  <span class="file-hint">Informe radiologico original en PDF</span>
+                </span>
+                <input id="medical-report" name="medicalReport" type="file" accept="application/pdf,.pdf" />
+              </div>
+              <span class="error-text" data-error="medical-report"></span>
+            </div>
+
+            <div class="actions">
+              <button class="btn" id="submit-btn" type="submit" disabled>
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Ejecutar flujo final
+              </button>
+              <button class="secondary-action danger-lite" id="cleanup-btn" type="button" title="Limpiar estudio en Idonia">
+                <svg viewBox="0 0 24 24" fill="none" width="18" height="18">
+                  <path d="M3 6h18M8 6V4h8v2M6 6l1 15h10l1-15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M10 11v6M14 11v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                Preparar entorno limpio
+              </button>
+            </div>
+
+            <p class="cleanup-note">
+              Limpieza disponible para repetir el flujo sin duplicados en la ruta configurada de Idonia.
+            </p>
+          </form>
+        </section>
+
+        <section class="evidence-grid">
+          <section class="panel" aria-labelledby="flow-title">
+            <div class="panel-head">
+              <div>
+                <div class="eyebrow">Flujo real</div>
+                <h2 class="panel-title" id="flow-title">Idonia + Recog</h2>
+              </div>
+            </div>
+            <div class="process-status">
+              <div class="status-main">
+                <div class="status-orb" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M5 12h4l2-5 4 10 2-5h2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <div class="status-copy">
+                  <span>Estado del proceso</span>
+                  <strong id="metric-status">listo</strong>
+                </div>
+              </div>
+              <div class="status-chip">
+                <span>Duracion</span>
+                <strong id="metric-duration">0 ms</strong>
+              </div>
+              <div class="status-chip">
+                <span>Ejecucion</span>
+                <strong id="metric-workflow">pendiente</strong>
+              </div>
+            </div>
+            <div class="flow" id="timeline"></div>
+          </section>
+
+          <section class="panel" aria-labelledby="delivery-title">
+            <div class="panel-head">
+              <div>
+                <div class="eyebrow">Entrega</div>
+                <h2 class="panel-title" id="delivery-title">Magic Link y evidencias</h2>
+              </div>
+              <button class="ghost-btn" id="diagnostics-open" type="button">
+                <svg viewBox="0 0 24 24" fill="none" width="18" height="18">
+                  <path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6l-8-3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                  <path d="M8 12h8M8 16h5M8 8h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                Diagnostico
+              </button>
+            </div>
+            <div class="result">
+              <div class="delivery-empty" id="delivery-empty">
+                <strong>Entrega pendiente</strong>
+                <span>Ejecuta el flujo final para generar el Magic Link, el PIN y el informe para paciente.</span>
+              </div>
+
+              <div class="magic-card is-hidden" id="result-band">
+                <div>
+                  <strong>Acceso generado para paciente y medico</strong>
+                  <a id="magic-url" href="#" target="_blank" rel="noreferrer">-</a>
+                </div>
+                <div class="pin" id="magic-pin">PIN</div>
+              </div>
+
+              <div class="downloads">
+                <a class="text-link is-hidden" id="download-link" href="#" target="_blank" rel="noreferrer">
+                  <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M12 3v12m0 0 4-4m-4 4-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M5 21h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                  Descargar informe paciente
+                </a>
+              </div>
+
+              <div class="evidence-list" aria-label="Checklist de evidencias">
+                <span class="evidence-item" id="ev-dicom">DICOM en Idonia</span>
+                <span class="evidence-item" id="ev-original">Informe original</span>
+                <span class="evidence-item" id="ev-patient">Informe paciente</span>
+                <span class="evidence-item" id="ev-magic">Magic Link + PIN</span>
+              </div>
+
+            </div>
+          </section>
+        </section>
+      </div>
+    </main>
+
+    <div class="modal-backdrop" id="cleanup-modal" role="dialog" aria-modal="true" aria-labelledby="cleanup-title">
+      <div class="modal">
+        <h2 id="cleanup-title">Limpiar datos en Idonia</h2>
+        <p>
+          Se eliminara el estudio configurado para este DNI. Para confirmar escribe ELIMINAR.
+        </p>
+        <input id="cleanup-confirmation" type="text" autocomplete="off" placeholder="ELIMINAR" />
+        <div class="modal-actions">
+          <button class="secondary-btn" type="button" id="cleanup-cancel">Cancelar</button>
+          <button class="danger-confirm" type="button" id="cleanup-confirm">Eliminar</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-backdrop" id="diagnostic-modal" role="dialog" aria-modal="true" aria-labelledby="diagnostic-title">
+      <section class="diagnostic-sheet">
+        <header class="diagnostic-header">
+          <div>
+            <h2 id="diagnostic-title">Diagnostico tecnico</h2>
+            <p>Estado operativo, ejecuciones recientes y trazabilidad tecnica del flujo.</p>
+          </div>
+          <button class="icon-btn" id="diagnostic-close" type="button" title="Cerrar diagnostico">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </header>
+        <nav class="diagnostic-tabs" aria-label="Secciones de diagnostico">
+          <button class="diagnostic-tab is-active" type="button" data-diagnostic-tab="summary">Resumen</button>
+          <button class="diagnostic-tab" type="button" data-diagnostic-tab="system">Sistema</button>
+          <button class="diagnostic-tab" type="button" data-diagnostic-tab="runs">Ejecuciones</button>
+          <button class="diagnostic-tab" type="button" data-diagnostic-tab="detail">Detalle tecnico</button>
+        </nav>
+        <div class="diagnostic-content" id="diagnostic-content"></div>
+      </section>
+    </div>
+
+    <script>
+      const form = document.getElementById("medical-form");
+      const dniInput = document.getElementById("patient-dni");
+      const nameInput = document.getElementById("patient-name");
+      const submitBtn = document.getElementById("submit-btn");
+      const cleanupBtn = document.getElementById("cleanup-btn");
+      const healthBtn = document.getElementById("health-btn");
+      const diagnosticsOpen = document.getElementById("diagnostics-open");
+      const diagnosticModal = document.getElementById("diagnostic-modal");
+      const diagnosticClose = document.getElementById("diagnostic-close");
+      const diagnosticContent = document.getElementById("diagnostic-content");
+      const diagnosticTabs = [...document.querySelectorAll("[data-diagnostic-tab]")];
+      const timelineEl = document.getElementById("timeline");
+      const deliveryEmpty = document.getElementById("delivery-empty");
+      const resultBand = document.getElementById("result-band");
+      const magicUrl = document.getElementById("magic-url");
+      const magicPin = document.getElementById("magic-pin");
+      const downloadLink = document.getElementById("download-link");
+      const metricWorkflow = document.getElementById("metric-workflow");
+      const metricDuration = document.getElementById("metric-duration");
+      const metricStatus = document.getElementById("metric-status");
+      const cleanupModal = document.getElementById("cleanup-modal");
+      const cleanupConfirmation = document.getElementById("cleanup-confirmation");
+      const cleanupConfirm = document.getElementById("cleanup-confirm");
+      const cleanupCancel = document.getElementById("cleanup-cancel");
+      const evidenceItems = [
+        document.getElementById("ev-dicom"),
+        document.getElementById("ev-original"),
+        document.getElementById("ev-patient"),
+        document.getElementById("ev-magic"),
+      ];
+
+      const state = { dni: true, name: true, dicomFile: false, medicalReport: false };
+
+      const plannedSteps = [
+        ["validate_dicom", "Validar imagen DICOM"],
+        ["idonia_folder", "Preparar carpeta de paciente"],
+        ["upload_dicom", "Subir estudio a Idonia"],
+        ["extract_pdf", "Extraer texto del informe"],
+        ["upload_medical_report", "Subir informe original"],
+        ["prepare_recog", "Preparar solicitud a Recog"],
+        ["recog_humanize", "Generar PDF humanizado"],
+        ["generate_patient_pdf", "Guardar informe paciente"],
+        ["upload_patient_report", "Subir informe paciente"],
+        ["magic_link", "Crear Magic Link seguro"],
+      ];
+
+      const diagnosticState = {
+        activeTab: "summary",
+        config: null,
+        workflows: null,
+        currentWorkflow: null,
+        events: [
+          {
+            title: "Sistema listo",
+            detail: "El flujo esta preparado para registrar estado, pasos, duraciones y resultado de entrega.",
+            tone: "normal",
+          },
+        ],
+        technical: ["[ready] Esperando ejecucion real..."],
+      };
+
+      function iconSvg(name) {
+        const icons = {
+          check: '<svg viewBox="0 0 24 24" fill="none"><path d="m5 13 4 4L19 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+          fail: '<svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+          wait: '<svg viewBox="0 0 24 24" fill="none"><path d="M12 8v5l3 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M21 12a9 9 0 1 1-9-9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+          play: '<svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        };
+        return icons[name] || icons.wait;
+      }
+
+      function applyPill(id, label, status) {
+        const pill = document.getElementById(id);
+        const dot = pill.querySelector(".dot");
+        const value = pill.querySelector("strong");
+        dot.classList.remove("ok", "error");
+        if (status === "ok") dot.classList.add("ok");
+        if (status === "error") dot.classList.add("error");
+        value.textContent = label;
+      }
+
+      function applySystemStatus(data) {
+        const idoniaReal = data.services?.idonia?.mode === "real";
+        const recogReal = data.services?.recog?.mode === "real";
+        const idoniaReady = idoniaReal && data.services.idonia.configured;
+        const recogReady = recogReal && data.services.recog.configured;
+        applyPill("idonia-pill", idoniaReady ? "real activo" : data.services?.idonia?.mode || "pendiente", idoniaReady ? "ok" : "error");
+        applyPill("recog-pill", recogReady ? "real activo" : data.services?.recog?.mode || "pendiente", recogReady ? "ok" : "error");
+        applyPill("mode-pill", data.display_mode || modeLabel(data.mode), data.mode === "real" ? "ok" : "error");
+      }
+
+      function modeLabel(mode) {
+        if (mode === "real") return "flujo real";
+        if (mode === "hybrid") return "conexion parcial";
+        return "sin conexion real";
+      }
+
+      function renderPlannedTimeline(activeKey = null) {
+        timelineEl.innerHTML = plannedSteps.map(([key, label], index) => `
+          <div class="step ${activeKey === key ? "is-active" : ""}" data-step="${key}">
+            <div class="step-node">${index + 1}</div>
+            <div>
+              <strong>${label}</strong>
+              <span>${activeKey === key ? "en curso" : "pendiente"}</span>
+            </div>
+            <div class="duration">-</div>
+          </div>
+        `).join("");
+      }
+
+      function renderWorkflow(workflow) {
+        diagnosticState.currentWorkflow = workflow;
+        const byKey = new Map(workflow.steps.map((step) => [step.key, step]));
+        timelineEl.innerHTML = plannedSteps.map(([key, label], index) => {
+          const step = byKey.get(key);
+          const status = step ? step.status : "pending";
+          const detail = step ? statusDetail(step) : "pendiente";
+          const duration = step ? statusDuration(step) : "-";
+          const node = statusNode(status, index);
+          return `
+            <div class="step is-${status}" data-step="${key}">
+              <div class="step-node">${node}</div>
+              <div>
+                <strong>${escapeHtml(step ? step.label : label)}</strong>
+                <span>${escapeHtml(detail)}</span>
+              </div>
+              <div class="duration">${duration}</div>
+            </div>
+          `;
+        }).join("");
+
+        metricWorkflow.textContent = workflow.workflow_id.slice(0, 12);
+        metricDuration.textContent = `${workflow.duration_ms || 0} ms`;
+        metricStatus.textContent = statusLabel(workflow.status);
+
+        if (workflow.magic_link) {
+          deliveryEmpty.classList.add("is-hidden");
+          resultBand.classList.remove("is-hidden");
+          magicUrl.href = workflow.magic_link.url;
+          magicUrl.textContent = workflow.magic_link.url;
+          magicPin.textContent = workflow.magic_link.pin;
+        }
+
+        if (workflow.download_url) {
+          downloadLink.classList.remove("is-hidden");
+          downloadLink.href = workflow.download_url;
+        }
+
+        if (workflow.status === "completed") {
+          evidenceItems.forEach((item) => item.classList.add("done"));
+        }
+        if (diagnosticModal.classList.contains("is-open") && diagnosticState.activeTab === "summary") {
+          renderDiagnostic();
+        }
+      }
+
+      function statusNode(status, index) {
+        if (status === "completed") return "OK";
+        if (status === "running") return "...";
+        if (status === "failed") return "!";
+        return index + 1;
+      }
+
+      function statusDetail(step) {
+        if (step.status === "running") return "en curso";
+        return step.detail || "pendiente";
+      }
+
+      function statusDuration(step) {
+        if (step.status === "running") return "...";
+        return step.duration_ms ? `${step.duration_ms} ms` : "-";
+      }
+
+      function statusLabel(status) {
+        if (status === "queued") return "en cola";
+        if (status === "running") return "procesando";
+        if (status === "completed") return "completado";
+        if (status === "failed") return "error";
+        return status || "listo";
+      }
+
+      function workflowError(workflow) {
+        const failedStep = workflow.steps.find((step) => step.status === "failed");
+        return workflow.debug?.error || failedStep?.detail || "El flujo no se completo";
+      }
+
+      function sleep(ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+      }
+
+      async function pollWorkflow(workflowId, pollUrl) {
+        let lastStepKey = "";
+        let lastStepStatus = "";
+        const url = pollUrl || `/api/workflows/${workflowId}`;
+        while (true) {
+          const response = await fetch(url, { cache: "no-store" });
+          const data = await response.json();
+          if (!response.ok || !data.ok) {
+            throw new Error(data.detail || data.error || "No se pudo consultar el workflow");
+          }
+
+          const workflow = data.workflow;
+          renderWorkflow(workflow);
+          const currentStep = workflow.steps.find((step) => step.status === "running");
+          const latestStep = currentStep || workflow.steps[workflow.steps.length - 1];
+          if (latestStep && (latestStep.key !== lastStepKey || latestStep.status !== lastStepStatus)) {
+            lastStepKey = latestStep.key;
+            lastStepStatus = latestStep.status;
+            logLine(`${latestStep.label}: ${statusDetail(latestStep)}`, latestStep.status === "failed" ? "error" : "warn");
+          }
+
+          if (workflow.status === "completed") return workflow;
+          if (workflow.status === "failed") throw new Error(workflowError(workflow));
+          await sleep(450);
+        }
+      }
+
+      function resetResult() {
+        diagnosticState.currentWorkflow = null;
+        deliveryEmpty.classList.remove("is-hidden");
+        resultBand.classList.add("is-hidden");
+        downloadLink.classList.add("is-hidden");
+        evidenceItems.forEach((item) => item.classList.remove("done"));
+      }
+
+      function updateSubmitState() {
+        const ready = state.dni && state.name && state.dicomFile && state.medicalReport;
+        submitBtn.disabled = !ready;
+      }
+
+      function validateTextInputs() {
+        state.dni = dniInput.value.trim().length > 0;
+        state.name = nameInput.value.trim().length > 0;
+        dniInput.classList.toggle("is-missing", !state.dni);
+        nameInput.classList.toggle("is-missing", !state.name);
+        updateSubmitState();
+      }
+
+      function logLine(message, tone = "muted") {
+        const now = new Date().toLocaleTimeString();
+        diagnosticState.technical.push(`[${now}] ${message}`);
+        diagnosticState.technical = diagnosticState.technical.slice(-80);
+        if (diagnosticModal.classList.contains("is-open") && diagnosticState.activeTab === "detail") {
+          renderDiagnostic();
+        }
+      }
+
+      function logJson(label, value, forceOpen = false) {
+        diagnosticState.technical.push(`${label}\n${JSON.stringify(value, null, 2)}`);
+        diagnosticState.technical = diagnosticState.technical.slice(-80);
+        if (forceOpen) openDiagnostic("detail");
+        if (diagnosticModal.classList.contains("is-open") && diagnosticState.activeTab === "detail") {
+          renderDiagnostic();
+        }
+      }
+
+      function addFeed(title, detail, tone = "normal") {
+        diagnosticState.events.unshift({ title, detail, tone });
+        diagnosticState.events = diagnosticState.events.slice(0, 8);
+        if (diagnosticModal.classList.contains("is-open") && diagnosticState.activeTab === "summary") {
+          renderDiagnostic();
+        }
+      }
+
+      function summarizeConfig(config) {
+        const idoniaMode = config.idonia_use_mocks ? "sin conexion real" : "staging real";
+        const recogMode = config.recog_use_mocks ? "sin conexion real" : "staging real";
+        return `Idonia en ${idoniaMode}, Recog en ${recogMode}. Ruta del estudio: ${config.idonia_accession_number || "sin configurar"}.`;
+      }
+
+      function summarizeWorkflows(data) {
+        const completed = data.items?.length || 0;
+        const running = data.running?.length || 0;
+        if (!completed && !running) return "Todavia no hay ejecuciones registradas en esta sesion.";
+        return `${running} ejecucion(es) en curso y ${completed} ejecucion(es) finalizadas guardadas en esta sesion.`;
+      }
+
+      function openDiagnostic(tab = "summary") {
+        diagnosticState.activeTab = tab;
+        diagnosticModal.classList.add("is-open");
+        renderDiagnostic();
+        loadDiagnosticTab(tab);
+      }
+
+      function closeDiagnostic() {
+        diagnosticModal.classList.remove("is-open");
+      }
+
+      function setDiagnosticTab(tab) {
+        diagnosticState.activeTab = tab;
+        renderDiagnostic();
+        loadDiagnosticTab(tab);
+      }
+
+      async function loadDiagnosticTab(tab) {
+        try {
+          if (tab === "system") {
+            const response = await fetch("/api/debug/config", { cache: "no-store" });
+            diagnosticState.config = await response.json();
+            renderDiagnostic();
+          }
+          if (tab === "runs") {
+            const response = await fetch("/api/debug/workflows", { cache: "no-store" });
+            diagnosticState.workflows = await response.json();
+            renderDiagnostic();
+          }
+        } catch (error) {
+          addFeed("No se pudo cargar el diagnostico", error.message, "error");
+        }
+      }
+
+      function renderDiagnostic() {
+        diagnosticTabs.forEach((tab) => {
+          tab.classList.toggle("is-active", tab.dataset.diagnosticTab === diagnosticState.activeTab);
+        });
+        if (diagnosticState.activeTab === "summary") renderDiagnosticSummary();
+        if (diagnosticState.activeTab === "system") renderDiagnosticSystem();
+        if (diagnosticState.activeTab === "runs") renderDiagnosticRuns();
+        if (diagnosticState.activeTab === "detail") renderDiagnosticDetail();
+      }
+
+      function renderDiagnosticSummary() {
+        const workflow = diagnosticState.currentWorkflow;
+        const summaryItems = workflow
+          ? workflow.steps.slice().reverse().map((step) => ({
+              title: `${statusLabel(step.status)} · ${step.label}`,
+              detail: step.status === "running"
+                ? "Paso ejecutandose ahora"
+                : `${statusDetail(step)}${step.duration_ms ? ` · ${step.duration_ms} ms` : ""}`,
+              tone: step.status === "failed" ? "error" : "normal",
+            }))
+          : diagnosticState.events;
+        const events = summaryItems.length
+          ? summaryItems.map((event) => `
+              <div class="diagnostic-event ${event.tone === "error" ? "error" : ""}">
+                <strong>${escapeHtml(event.title)}</strong>
+                <span>${escapeHtml(event.detail)}</span>
+              </div>
+            `).join("")
+          : '<div class="empty-diagnostic">Todavia no hay eventos destacados.</div>';
+
+        diagnosticContent.innerHTML = `
+          <div class="diagnostic-grid">
+            <div class="diagnostic-card">
+              <span>Estado</span>
+              <strong>${escapeHtml(metricStatus.textContent || "listo")}</strong>
+            </div>
+            <div class="diagnostic-card">
+              <span>Duracion</span>
+              <strong>${escapeHtml(metricDuration.textContent || "0 ms")}</strong>
+            </div>
+            <div class="diagnostic-card">
+              <span>Ejecucion</span>
+              <strong>${escapeHtml(metricWorkflow.textContent || "pendiente")}</strong>
+            </div>
+            <div class="diagnostic-card">
+              <span>Entrega</span>
+              <strong>${resultBand.classList.contains("is-hidden") ? "pendiente" : "Magic Link generado"}</strong>
+            </div>
+          </div>
+          <div style="height:14px"></div>
+          <div class="diagnostic-list">${events}</div>
+        `;
+      }
+
+      function renderDiagnosticSystem() {
+        const config = diagnosticState.config;
+        if (!config) {
+          diagnosticContent.innerHTML = '<div class="empty-diagnostic">Cargando estado seguro del sistema...</div>';
+          return;
+        }
+        diagnosticContent.innerHTML = `
+          <div class="diagnostic-grid">
+            <div class="diagnostic-card">
+              <span>Idonia</span>
+              <strong>${config.idonia_use_mocks ? "Sin conexion real" : "Staging real"}</strong>
+            </div>
+            <div class="diagnostic-card">
+              <span>Recog</span>
+              <strong>${config.recog_use_mocks ? "Sin conexion real" : "Staging real"}</strong>
+            </div>
+            <div class="diagnostic-card">
+              <span>Ruta del estudio</span>
+              <strong>${escapeHtml(config.idonia_accession_number || "-")}</strong>
+            </div>
+            <div class="diagnostic-card">
+              <span>Magic Link</span>
+              <strong>${config.idonia_magic_link_password_configured ? "PIN/password configurado" : "Sin password adicional"}</strong>
+            </div>
+          </div>
+        `;
+      }
+
+      function renderDiagnosticRuns() {
+        const workflows = diagnosticState.workflows;
+        if (!workflows) {
+          diagnosticContent.innerHTML = '<div class="empty-diagnostic">Cargando ejecuciones recientes...</div>';
+          return;
+        }
+        const items = [...(workflows.running || []), ...(workflows.items || [])].slice(0, 6);
+        if (!items.length) {
+          diagnosticContent.innerHTML = '<div class="empty-diagnostic">Todavia no hay ejecuciones registradas en esta sesion.</div>';
+          return;
+        }
+        diagnosticContent.innerHTML = `
+          <div class="diagnostic-list">
+            ${items.map((workflow) => `
+              <div class="diagnostic-event">
+                <strong>${escapeHtml(statusLabel(workflow.status))} · ${escapeHtml(String(workflow.workflow_id || "").slice(0, 12))}</strong>
+                <span>${escapeHtml(workflow.patient_name || "Paciente")} · ${workflow.duration_ms || 0} ms · ${workflow.steps?.length || 0} pasos registrados</span>
+              </div>
+            `).join("")}
+          </div>
+        `;
+      }
+
+      function renderDiagnosticDetail() {
+        const detail = diagnosticState.technical.join("\n\n");
+        diagnosticContent.innerHTML = `<pre class="log">${escapeHtml(detail || "Sin detalle tecnico registrado.")}</pre>`;
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+      }
+
+      async function refreshHealth(showLog = false) {
+        const response = await fetch("/api/health");
+        const data = await response.json();
+        applySystemStatus(data);
+        if (showLog) logJson("health", data, true);
+        return data;
+      }
+
+      dniInput.addEventListener("input", validateTextInputs);
+      nameInput.addEventListener("input", validateTextInputs);
+
+      document.querySelectorAll("[data-dropzone]").forEach((dropzone) => {
+        const input = dropzone.querySelector("input[type='file']");
+        const fileNameEl = dropzone.querySelector("[data-file-name]");
+        const errorEl = document.querySelector(`[data-error="${input.id}"]`);
+        const stateKey = input.name === "dicomFile" ? "dicomFile" : "medicalReport";
+        const isPdf = input.id === "medical-report";
+
+        function validateFile(file) {
+          if (!file) return null;
+          const name = file.name.toLowerCase();
+          if (isPdf && file.type !== "application/pdf" && !name.endsWith(".pdf")) {
+            return "Solo PDF.";
+          }
+          if (!isPdf && !name.endsWith(".dcm") && !name.endsWith(".dicom") && file.type !== "application/dicom") {
+            return "Solo DICOM.";
+          }
+          return null;
+        }
+
+        function applyFile(file) {
+          const error = validateFile(file);
+          if (!file) {
+            fileNameEl.textContent = isPdf ? "Seleccionar PDF" : "Seleccionar DICOM";
+            errorEl.textContent = "";
+            dropzone.classList.remove("is-filled", "is-missing");
+            state[stateKey] = false;
+          } else if (error) {
+            fileNameEl.textContent = file.name;
+            errorEl.textContent = error;
+            dropzone.classList.remove("is-filled");
+            dropzone.classList.add("is-missing");
+            state[stateKey] = false;
+            input.value = "";
+          } else {
+            fileNameEl.textContent = file.name;
+            errorEl.textContent = "";
+            dropzone.classList.add("is-filled");
+            dropzone.classList.remove("is-missing");
+            state[stateKey] = true;
+            logLine(`${input.name}: ${file.name} (${file.size} bytes)`);
+          }
+          updateSubmitState();
+        }
+
+        input.addEventListener("change", () => applyFile(input.files[0] || null));
+        dropzone.addEventListener("dragover", (event) => {
+          event.preventDefault();
+          dropzone.classList.add("is-dragging");
+        });
+        dropzone.addEventListener("dragleave", () => dropzone.classList.remove("is-dragging"));
+        dropzone.addEventListener("drop", (event) => {
+          event.preventDefault();
+          dropzone.classList.remove("is-dragging");
+          if (!event.dataTransfer.files.length) return;
+          input.files = event.dataTransfer.files;
+          applyFile(input.files[0] || null);
+        });
+      });
+
+      healthBtn.addEventListener("click", async () => {
+        try {
+          const data = await refreshHealth(true);
+          addFeed("Sistema comprobado", `Modo actual: ${modeLabel(data.mode)}. Idonia y Recog actualizados.`);
+        } catch (error) {
+          addFeed("No se pudo comprobar el sistema", error.message, "error");
+          logLine(`health error: ${error.message}`, "error");
+        }
+      });
+
+      diagnosticsOpen.addEventListener("click", () => openDiagnostic("summary"));
+      diagnosticClose.addEventListener("click", closeDiagnostic);
+      diagnosticModal.addEventListener("click", (event) => {
+        if (event.target === diagnosticModal) closeDiagnostic();
+      });
+      diagnosticTabs.forEach((tab) => {
+        tab.addEventListener("click", () => setDiagnosticTab(tab.dataset.diagnosticTab));
+      });
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          closeDiagnostic();
+          cleanupModal.classList.remove("is-open");
+        }
+      });
+
+      cleanupBtn.addEventListener("click", () => {
+        validateTextInputs();
+        if (!state.dni) {
+          dniInput.focus();
+          return;
+        }
+        cleanupConfirmation.value = "";
+        cleanupModal.classList.add("is-open");
+        cleanupConfirmation.focus();
+      });
+
+      cleanupCancel.addEventListener("click", () => cleanupModal.classList.remove("is-open"));
+      cleanupModal.addEventListener("click", (event) => {
+        if (event.target === cleanupModal) cleanupModal.classList.remove("is-open");
+      });
+
+      cleanupConfirm.addEventListener("click", async () => {
+        if (cleanupConfirmation.value !== "ELIMINAR") {
+          cleanupConfirmation.classList.add("is-missing");
+          return;
+        }
+        cleanupConfirmation.classList.remove("is-missing");
+        cleanupConfirm.disabled = true;
+        cleanupConfirm.textContent = "Eliminando";
+        try {
+          const params = new URLSearchParams({
+            patientDni: dniInput.value.trim(),
+            scope: "study",
+          });
+          const response = await fetch(`/api/idonia/demo-data?${params}`, { method: "DELETE" });
+          const data = await response.json();
+          if (!response.ok || !data.ok) throw new Error(data.error || "No se pudo limpiar Idonia");
+          cleanupModal.classList.remove("is-open");
+          resetResult();
+          metricWorkflow.textContent = "pendiente";
+          metricDuration.textContent = "0 ms";
+          metricStatus.textContent = "limpio";
+          renderPlannedTimeline();
+          addFeed("Estudio eliminado en Idonia", `Ruta limpiada: ${data.route}. Ya puedes repetir el flujo sin duplicados.`);
+          logJson("idonia cleanup", data, true);
+        } catch (error) {
+          addFeed("No se pudo limpiar Idonia", error.message, "error");
+          logLine(`cleanup error: ${error.message}`, "error");
+        } finally {
+          cleanupConfirm.disabled = false;
+          cleanupConfirm.textContent = "Eliminar";
+        }
+      });
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        validateTextInputs();
+        if (submitBtn.disabled) return;
+
+        const formData = new FormData();
+        formData.append("patientDni", dniInput.value.trim());
+        formData.append("patientName", nameInput.value.trim());
+        formData.append("dicomFile", document.getElementById("dicom-file").files[0]);
+        formData.append("medicalReport", document.getElementById("medical-report").files[0]);
+        formData.append("asyncMode", "true");
+
+        resetResult();
+        metricStatus.textContent = "procesando";
+        metricDuration.textContent = "0 ms";
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `${iconSvg("wait")} Procesando`;
+        renderPlannedTimeline("validate_dicom");
+        addFeed("Flujo iniciado", "El sistema esta procesando el DICOM, el informe medico y la entrega segura.");
+        logLine("flujo real iniciado", "warn");
+
+        try {
+          const response = await fetch("/procesar", { method: "POST", body: formData });
+          const data = await response.json();
+          if (!response.ok || !data.ok) throw new Error(data.error || "Error del servidor");
+          renderWorkflow(data.workflow);
+          const workflow = data.poll_url
+            ? await pollWorkflow(data.workflow_id, data.poll_url)
+            : data.workflow;
+          renderWorkflow(workflow);
+          addFeed(
+            "Entrega generada",
+            `Magic Link y PDF de paciente listos. Duracion total: ${workflow.duration_ms || 0} ms.`
+          );
+          logJson("ejecucion completa", workflow);
+          submitBtn.innerHTML = `${iconSvg("check")} Flujo completado`;
+        } catch (error) {
+          metricStatus.textContent = "error";
+          submitBtn.innerHTML = `${iconSvg("fail")} Error`;
+          addFeed("El flujo se ha detenido", error.message, "error");
+          logLine(error.message, "error");
+        } finally {
+          setTimeout(() => {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = `${iconSvg("play")} Ejecutar flujo final`;
+            updateSubmitState();
+          }, 1200);
+        }
+      });
+
+      renderPlannedTimeline();
+      updateSubmitState();
+      refreshHealth()
+        .then((data) => logJson("startup", data))
+        .catch((error) => logLine(`startup error: ${error.message}`, "error"));
+      if (window.location.hash === "#diagnostico") {
+        openDiagnostic("summary");
+      }
+    </script>
+  </body>
+</html>

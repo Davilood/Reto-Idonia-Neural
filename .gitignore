@@ -1,0 +1,7 @@
+reto-3/
+__pycache__/
+*.pyc
+.env
+APIs.env
+apis.txt
+.pytest_cache/
