@@ -255,3 +255,7 @@ Uso critico aplicado:
 - La IA no sustituye el informe medico original.
 - El informe original se conserva junto al documento para paciente.
 - El flujo registra pasos, duraciones y evidencias para auditoria tecnica.
+
+## Interfaz Gráfica de WebApp
+<img width="1920" height="1200" alt="image" src="https://github.com/user-attachments/assets/6a41971e-0392-4658-9be6-38a4ce133816" />
+
