@@ -1220,6 +1220,10 @@
       ];
 
       const state = { dni: true, name: true, dicomFile: false, medicalReport: false };
+      const pollState = { controller: null, runInProgress: false };
+      const POLL_INITIAL_DELAY_MS = 1000;
+      const POLL_MAX_DELAY_MS = 5000;
+      const POLL_TIMEOUT_MS = 120000;
 
       const plannedSteps = [
         ["validate_dicom", "Validar imagen DICOM"],
@@ -1374,34 +1378,75 @@
         return workflow.debug?.error || failedStep?.detail || "El flujo no se completo";
       }
 
-      function sleep(ms) {
-        return new Promise((resolve) => setTimeout(resolve, ms));
+      function sleep(ms, signal) {
+        return new Promise((resolve, reject) => {
+          if (signal?.aborted) {
+            reject(new DOMException("Polling cancelado", "AbortError"));
+            return;
+          }
+          const timer = setTimeout(resolve, ms);
+          signal?.addEventListener("abort", () => {
+            clearTimeout(timer);
+            reject(new DOMException("Polling cancelado", "AbortError"));
+          }, { once: true });
+        });
+      }
+
+      function cancelActivePoll() {
+        if (pollState.controller) {
+          pollState.controller.abort();
+          pollState.controller = null;
+        }
       }
 
       async function pollWorkflow(workflowId, pollUrl) {
+        cancelActivePoll();
         let lastStepKey = "";
         let lastStepStatus = "";
+        let attempts = 0;
+        let delayMs = POLL_INITIAL_DELAY_MS;
+        const startedAt = Date.now();
+        const controller = new AbortController();
+        pollState.controller = controller;
         const url = pollUrl || `/api/workflows/${workflowId}`;
-        while (true) {
-          const response = await fetch(url, { cache: "no-store" });
-          const data = await response.json();
-          if (!response.ok || !data.ok) {
-            throw new Error(data.detail || data.error || "No se pudo consultar el workflow");
-          }
+        try {
+          while (Date.now() - startedAt < POLL_TIMEOUT_MS) {
+            attempts += 1;
+            const response = await fetch(url, { cache: "no-store", signal: controller.signal });
+            const data = await response.json();
+            if (!response.ok || !data.ok) {
+              throw new Error(data.detail || data.error || "No se pudo consultar el workflow");
+            }
 
-          const workflow = data.workflow;
-          renderWorkflow(workflow);
-          const currentStep = workflow.steps.find((step) => step.status === "running");
-          const latestStep = currentStep || workflow.steps[workflow.steps.length - 1];
-          if (latestStep && (latestStep.key !== lastStepKey || latestStep.status !== lastStepStatus)) {
-            lastStepKey = latestStep.key;
-            lastStepStatus = latestStep.status;
-            logLine(`${latestStep.label}: ${statusDetail(latestStep)}`, latestStep.status === "failed" ? "error" : "warn");
-          }
+            const workflow = data.workflow;
+            renderWorkflow(workflow);
+            const currentStep = workflow.steps.find((step) => step.status === "running");
+            const latestStep = currentStep || workflow.steps[workflow.steps.length - 1];
+            if (latestStep && (latestStep.key !== lastStepKey || latestStep.status !== lastStepStatus)) {
+              lastStepKey = latestStep.key;
+              lastStepStatus = latestStep.status;
+              logLine(`${latestStep.label}: ${statusDetail(latestStep)}`, latestStep.status === "failed" ? "error" : "warn");
+            }
 
-          if (workflow.status === "completed") return workflow;
-          if (workflow.status === "failed") throw new Error(workflowError(workflow));
-          await sleep(450);
+            if (workflow.status === "completed") return workflow;
+            if (workflow.status === "failed") throw new Error(workflowError(workflow));
+
+            const serverDelayMs = Number(data.retry_after_ms || 0);
+            const nextDelayMs = Number.isFinite(serverDelayMs) && serverDelayMs > 0
+              ? Math.min(POLL_MAX_DELAY_MS, serverDelayMs)
+              : delayMs;
+            await sleep(nextDelayMs, controller.signal);
+            delayMs = Math.min(POLL_MAX_DELAY_MS, Math.round(delayMs * 1.5));
+          }
+          throw new Error("Recog sigue procesando tras 120 segundos. He parado las consultas automaticas para no saturar la API; revisa el diagnostico y vuelve a consultar el workflow si hace falta.");
+        } catch (error) {
+          if (error.name === "AbortError") {
+            throw new Error("Consulta del workflow cancelada.");
+          }
+          throw error;
+        } finally {
+          if (pollState.controller === controller) pollState.controller = null;
+          logLine(`polling detenido tras ${attempts} consultas`, "warn");
         }
       }
 
@@ -1765,7 +1810,9 @@
       form.addEventListener("submit", async (event) => {
         event.preventDefault();
         validateTextInputs();
-        if (submitBtn.disabled) return;
+        if (submitBtn.disabled || pollState.runInProgress) return;
+        pollState.runInProgress = true;
+        cancelActivePoll();
 
         const formData = new FormData();
         formData.append("patientDni", dniInput.value.trim());
@@ -1787,6 +1834,10 @@
           const response = await fetch("/procesar", { method: "POST", body: formData });
           const data = await response.json();
           if (!response.ok || !data.ok) throw new Error(data.error || "Error del servidor");
+          if (data.deduplicated) {
+            addFeed("Workflow ya en curso", "Se reutiliza la ejecucion activa para evitar otra llamada real a Recog.");
+            logLine("envio duplicado reutilizado", "warn");
+          }
           renderWorkflow(data.workflow);
           const workflow = data.poll_url
             ? await pollWorkflow(data.workflow_id, data.poll_url)
@@ -1804,6 +1855,7 @@
           addFeed("El flujo se ha detenido", error.message, "error");
           logLine(error.message, "error");
         } finally {
+          pollState.runInProgress = false;
           setTimeout(() => {
             submitBtn.disabled = false;
             submitBtn.innerHTML = `${iconSvg("play")} Ejecutar flujo final`;

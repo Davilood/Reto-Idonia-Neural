@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import logging
 import time
 import uuid
@@ -29,6 +30,8 @@ orchestrator = build_orchestrator(settings)
 LAST_WORKFLOWS: deque[dict[str, object]] = deque(maxlen=20)
 WORKFLOW_STATES: dict[str, dict[str, object]] = {}
 ARCHIVED_WORKFLOW_IDS: set[str] = set()
+ACTIVE_WORKFLOW_KEYS: dict[str, str] = {}
+WORKFLOW_INPUT_KEYS: dict[str, str] = {}
 WORKFLOW_LOCK = RLock()
 
 app = FastAPI(
@@ -141,6 +144,8 @@ def delete_idonia_demo_data(
             LAST_WORKFLOWS.clear()
             WORKFLOW_STATES.clear()
             ARCHIVED_WORKFLOW_IDS.clear()
+            ACTIVE_WORKFLOW_KEYS.clear()
+            WORKFLOW_INPUT_KEYS.clear()
         log_event(
             logger,
             logging.INFO,
@@ -174,7 +179,12 @@ def get_workflow(workflow_id: str) -> JSONResponse:
         workflow = WORKFLOW_STATES.get(workflow_id)
     if not workflow:
         raise HTTPException(status_code=404, detail="Workflow no encontrado")
-    return JSONResponse({"ok": True, "workflow": workflow})
+    content: dict[str, object] = {"ok": True, "workflow": workflow}
+    headers: dict[str, str] = {"Cache-Control": "no-store"}
+    if workflow.get("status") in {"queued", "running"}:
+        content["retry_after_ms"] = 3000
+        headers["Retry-After"] = "3"
+    return JSONResponse(content, headers=headers)
 
 
 @app.get("/api/workflows/{workflow_id}/patient-report")
@@ -209,6 +219,31 @@ async def procesar(
 
     dicom_bytes = await dicomFile.read()
     pdf_bytes = await medicalReport.read()
+    input_key = _workflow_input_key(patient, dicom_bytes, pdf_bytes)
+
+    duplicate = _running_duplicate_workflow(input_key)
+    if duplicate:
+        duplicate_id = str(duplicate["workflow_id"])
+        log_event(
+            logger,
+            logging.WARNING,
+            "workflow.duplicate_ignored",
+            {
+                "workflow_id": duplicate_id,
+                "patient": mask_identifier(patient.dni),
+                "status": duplicate.get("status"),
+            },
+        )
+        return JSONResponse(
+            status_code=202,
+            content={
+                "ok": True,
+                "workflow_id": duplicate_id,
+                "workflow": duplicate,
+                "poll_url": f"/api/workflows/{duplicate_id}",
+                "deduplicated": True,
+            },
+        )
 
     try:
         dicom = file_service.store_bytes(
@@ -246,6 +281,7 @@ async def procesar(
                 "debug": {},
                 "input_files": input_files,
             }
+            _register_active_workflow(input_key, workflow_id)
             _remember_workflow(queued_payload)
             background_tasks.add_task(
                 _run_workflow_background,
@@ -265,6 +301,7 @@ async def procesar(
                 },
             )
 
+        _register_active_workflow(input_key, workflow_id)
         result = orchestrator.run(
             patient=patient,
             dicom_path=dicom.path,
@@ -275,6 +312,7 @@ async def procesar(
         _remember_workflow(payload)
         return JSONResponse({"ok": True, "workflow": jsonable_encoder(payload)})
     except WorkflowError as exc:
+        _forget_active_workflow(workflow_id)
         log_event(
             logger,
             logging.ERROR,
@@ -286,6 +324,7 @@ async def procesar(
             content={"ok": False, "workflow_id": workflow_id, "error": str(exc)},
         )
     except Exception as exc:
+        _forget_active_workflow(workflow_id)
         log_event(
             logger,
             logging.ERROR,
@@ -322,6 +361,7 @@ def _run_workflow_background(
             ),
         )
     except WorkflowError as exc:
+        _forget_active_workflow(workflow_id)
         log_event(
             logger,
             logging.ERROR,
@@ -329,6 +369,7 @@ def _run_workflow_background(
             {"workflow_id": workflow_id, "error": str(exc)},
         )
     except Exception as exc:
+        _forget_active_workflow(workflow_id)
         log_event(
             logger,
             logging.ERROR,
@@ -358,3 +399,43 @@ def _remember_workflow(payload: dict[str, object]) -> None:
         if payload.get("status") in {"completed", "failed"} and workflow_id not in ARCHIVED_WORKFLOW_IDS:
             LAST_WORKFLOWS.appendleft(payload)
             ARCHIVED_WORKFLOW_IDS.add(workflow_id)
+        if payload.get("status") in {"completed", "failed"}:
+            input_key = WORKFLOW_INPUT_KEYS.pop(workflow_id, None)
+            if input_key and ACTIVE_WORKFLOW_KEYS.get(input_key) == workflow_id:
+                ACTIVE_WORKFLOW_KEYS.pop(input_key, None)
+
+
+def _workflow_input_key(patient: Patient, dicom_bytes: bytes, pdf_bytes: bytes) -> str:
+    digest = hashlib.sha256()
+    digest.update(patient.dni.strip().casefold().encode("utf-8"))
+    digest.update(b"\0")
+    digest.update(dicom_bytes)
+    digest.update(b"\0")
+    digest.update(pdf_bytes)
+    return digest.hexdigest()
+
+
+def _register_active_workflow(input_key: str, workflow_id: str) -> None:
+    with WORKFLOW_LOCK:
+        ACTIVE_WORKFLOW_KEYS[input_key] = workflow_id
+        WORKFLOW_INPUT_KEYS[workflow_id] = input_key
+
+
+def _forget_active_workflow(workflow_id: str) -> None:
+    with WORKFLOW_LOCK:
+        input_key = WORKFLOW_INPUT_KEYS.pop(workflow_id, None)
+        if input_key and ACTIVE_WORKFLOW_KEYS.get(input_key) == workflow_id:
+            ACTIVE_WORKFLOW_KEYS.pop(input_key, None)
+
+
+def _running_duplicate_workflow(input_key: str) -> dict[str, object] | None:
+    with WORKFLOW_LOCK:
+        workflow_id = ACTIVE_WORKFLOW_KEYS.get(input_key)
+        if not workflow_id:
+            return None
+        workflow = WORKFLOW_STATES.get(workflow_id)
+        if workflow and workflow.get("status") in {"queued", "running"}:
+            return workflow
+        ACTIVE_WORKFLOW_KEYS.pop(input_key, None)
+        WORKFLOW_INPUT_KEYS.pop(workflow_id, None)
+        return None
