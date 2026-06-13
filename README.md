@@ -4,6 +4,9 @@ Solucion para el reto de interoperabilidad de pruebas medicas: una webapp que co
 
 El objetivo no es solo mover archivos. El flujo preserva el informe clinico original para el profesional sanitario, genera un documento adaptado para el paciente y agrupa todo en una entrega segura y trazable.
 
+## Video Evidencia
+Enlace a Vídeo de Evidencia: https://drive.google.com/drive/folders/13yMnRgvaVMchG5zrO-_5N4yuXtHBB7LB
+
 ## Equipo Neural
 
 - David Martin Fortea - d.martinf.2024@alumnos.urjc.es
